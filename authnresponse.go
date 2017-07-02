@@ -9,34 +9,48 @@ import (
 	"github.com/RobotsAndPencils/go-saml/util"
 )
 
-func ParseCompressedEncodedResponse(b64ResponseXML string) (*Response, error) {
-	authnResponse := Response{}
+func ParseCompressedEncodedResponse(b64ResponseXML string, s *ServiceProviderSettings) (*Response, error) {
 	compressedXML, err := base64.StdEncoding.DecodeString(b64ResponseXML)
 	if err != nil {
 		return nil, err
 	}
-	bXML := util.Decompress(compressedXML)
-	err = xml.Unmarshal(bXML, &authnResponse)
-	if err != nil {
-		return nil, err
-	}
-
-	// There is a bug with XML namespaces in Go that's causing XML attributes with colons to not be roundtrip
-	// marshal and unmarshaled so we'll keep the original string around for validation.
-	authnResponse.originalString = string(bXML)
-	return &authnResponse, nil
-
+	bytesXML := util.Decompress(compressedXML)
+	return parseResponse(bytesXML, s)
 }
 
-func ParseEncodedResponse(b64ResponseXML string) (*Response, error) {
-	response := Response{}
+func ParseEncodedResponse(b64ResponseXML string, s *ServiceProviderSettings) (*Response, error) {
 	bytesXML, err := base64.StdEncoding.DecodeString(b64ResponseXML)
 	if err != nil {
 		return nil, err
 	}
-	err = xml.Unmarshal(bytesXML, &response)
+
+	return parseResponse(bytesXML, s)
+}
+
+func parseResponse(bytesXML []byte, s *ServiceProviderSettings) (*Response, error) {
+	response := Response{}
+	err := xml.Unmarshal(bytesXML, &response)
 	if err != nil {
 		return nil, err
+	}
+
+	// If there's an encrypted assertion on the response, try to decrypt and assign manually
+	if response.EncryptedAssertion != nil {
+		var tempResponse Response
+		decryptedXML, err := GetDecryptedXML(string(bytesXML), s.PrivateKeyPath)
+		if err != nil {
+			return nil, err
+		}
+
+		bytesXML = []byte(decryptedXML)
+		err = xml.Unmarshal(bytesXML, &tempResponse)
+		if err != nil {
+			return nil, err
+		}
+
+		if tempResponse.EncryptedAssertion != nil {
+			response.Assertion = tempResponse.EncryptedAssertion.Assertion
+		}
 	}
 
 	// There is a bug with XML namespaces in Go that's causing XML attributes with colons to not be roundtrip

@@ -88,7 +88,7 @@ response = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
     return
   }
 
-  response, err := saml.ParseEncodedResponse(encodedXML)
+  response, err := saml.ParseEncodedResponse(encodedXML, &sp)
   if err != nil {
     httpcommon.SendBadRequest(w, "SAMLResponse parse: "+err.Error())
     return

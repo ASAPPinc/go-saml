@@ -186,10 +186,11 @@ type Response struct {
 	IssueInstant string `xml:"IssueInstant,attr"`
 	InResponseTo string `xml:"InResponseTo,attr"`
 
-	Assertion Assertion `xml:"Assertion"`
-	Signature Signature `xml:"Signature"`
-	Issuer    Issuer    `xml:"Issuer"`
-	Status    Status    `xml:"Status"`
+	Assertion          Assertion           `xml:"Assertion"`
+	EncryptedAssertion *EncryptedAssertion `xml:"EncryptedAssertion"`
+	Signature          Signature           `xml:"Signature"`
+	Issuer             Issuer              `xml:"Issuer"`
+	Status             Status              `xml:"Status"`
 
 	originalString string
 }
@@ -206,6 +207,10 @@ type Assertion struct {
 	Subject            Subject
 	Conditions         Conditions
 	AttributeStatement AttributeStatement
+}
+
+type EncryptedAssertion struct {
+	Assertion Assertion `xml:"Assertion"`
 }
 
 type Conditions struct {
