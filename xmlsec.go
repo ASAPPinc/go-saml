@@ -98,6 +98,7 @@ func verify(xml string, publicCertPath string, id string) error {
 
 	//fmt.Println("xmlsec1", "--verify", "--pubkey-cert-pem", publicCertPath, "--id-attr:ID", id, samlXmlsecInput.Name())
 	_, err = exec.Command("xmlsec1", "--verify", "--pubkey-cert-pem", publicCertPath, "--id-attr:ID", id, samlXmlsecInput.Name()).CombinedOutput()
+	ioutil.WriteFile("SAMLTesting2.xml", []byte(xml), 0644)
 	if err != nil {
 		return errors.New("error verifing signature: " + err.Error())
 	}
