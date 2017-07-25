@@ -2,6 +2,7 @@ package saml
 
 import (
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -68,6 +69,7 @@ func sign(xml string, privateKeyPath string, id string) (string, error) {
 // `publicCertPath` must be a path on the filesystem, xmlsec1 is run out of process
 // through `exec`
 func VerifyResponseSignature(xml string, publicCertPath string) error {
+	fmt.Println("verifying response")
 	return verify(xml, publicCertPath, xmlResponseID)
 }
 
@@ -82,6 +84,7 @@ func VerifyRequestSignature(xml string, publicCertPath string) error {
 // `publicCertPath` must be a path on the filesystem, xmlsec1 is run out of process
 // through `exec`
 func VerifyAssertionSignature(xml string, publicCertPath string) error {
+	fmt.Println("verifying assertion")
 	return verify(xml, publicCertPath, xmlAssertionID)
 }
 
@@ -100,6 +103,7 @@ func verify(xml string, publicCertPath string, id string) error {
 	_, err = exec.Command("xmlsec1", "--verify", "--pubkey-cert-pem", publicCertPath, "--id-attr:ID", id, samlXmlsecInput.Name()).CombinedOutput()
 	ioutil.WriteFile("SAMLTesting2.xml", []byte(xml), 0644)
 	if err != nil {
+		fmt.Println(err)
 		return errors.New("error verifing signature: " + err.Error())
 	}
 	return nil
