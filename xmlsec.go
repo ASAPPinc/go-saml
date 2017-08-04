@@ -2,6 +2,7 @@ package saml
 
 import (
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -86,6 +87,10 @@ func VerifyAssertionSignature(xml string, publicCertPath string) error {
 }
 
 func verify(xml string, publicCertPath string, id string) error {
+	e := ioutil.WriteFile("saml-decrypted-8-4.xml", []byte(xml), 0644)
+	if e != nil {
+		fmt.Println("SAML" + e.Error())
+	}
 	//Write saml to
 	samlXmlsecInput, err := ioutil.TempFile(os.TempDir(), "tmpgs")
 	if err != nil {
