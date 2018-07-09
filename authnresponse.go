@@ -37,7 +37,7 @@ func parseResponse(bytesXML []byte, s *ServiceProviderSettings) (*Response, erro
 	// If there's an encrypted assertion on the response, try to decrypt and assign manually
 	if response.EncryptedAssertion != nil {
 		var tempResponse Response
-		decryptedXML, err := GetDecryptedXML(string(bytesXML), s.PrivateKeyPath)
+		decryptedXML, err := GetDecryptedXML(string(bytesXML), s.privateKey)
 		if err != nil {
 			return nil, err
 		}
@@ -89,9 +89,9 @@ func (r *Response) Validate(s *ServiceProviderSettings) error {
 		return errors.New("subject recipient mismatch, expected: " + s.AssertionConsumerServiceURL + " not " + r.Assertion.Subject.SubjectConfirmation.SubjectConfirmationData.Recipient)
 	}
 
-	err := VerifyResponseSignature(r.originalString, s.IDPPublicCertPath)
+	err := VerifyResponseSignature(r.originalString, s.iDPPublicCert)
 	if err != nil {
-		assertionErr := VerifyAssertionSignature(r.originalString, s.IDPPublicCertPath)
+		assertionErr := VerifyAssertionSignature(r.originalString, s.iDPPublicCert)
 		if assertionErr != nil {
 			return err
 		}
@@ -296,17 +296,17 @@ func (r *Response) String() (string, error) {
 	return string(b), nil
 }
 
-func (r *Response) SignedString(privateKeyPath string) (string, error) {
+func (r *Response) SignedString(privateKey string) (string, error) {
 	s, err := r.String()
 	if err != nil {
 		return "", err
 	}
 
-	return SignResponse(s, privateKeyPath)
+	return SignResponse(s, privateKey)
 }
 
-func (r *Response) EncodedSignedString(privateKeyPath string) (string, error) {
-	signed, err := r.SignedString(privateKeyPath)
+func (r *Response) EncodedSignedString(privateKey string) (string, error) {
+	signed, err := r.SignedString(privateKey)
 	if err != nil {
 		return "", err
 	}
@@ -314,8 +314,8 @@ func (r *Response) EncodedSignedString(privateKeyPath string) (string, error) {
 	return b64XML, nil
 }
 
-func (r *Response) CompressedEncodedSignedString(privateKeyPath string) (string, error) {
-	signed, err := r.SignedString(privateKeyPath)
+func (r *Response) CompressedEncodedSignedString(privateKey string) (string, error) {
+	signed, err := r.SignedString(privateKey)
 	if err != nil {
 		return "", err
 	}
