@@ -16,8 +16,8 @@ type ServiceProviderSettings struct {
 
 	hasInit       bool
 	publicCert    string
-	privateKey    string
-	iDPPublicCert string
+	PrivateKey    string
+	IDPPublicCert string
 }
 
 type IdentityProviderSettings struct {
