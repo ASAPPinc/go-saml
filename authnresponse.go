@@ -37,7 +37,7 @@ func parseResponse(bytesXML []byte, s *ServiceProviderSettings) (*Response, erro
 	// If there's an encrypted assertion on the response, try to decrypt and assign manually
 	if response.EncryptedAssertion != nil {
 		var tempResponse Response
-		decryptedXML, err := GetDecryptedXML(string(bytesXML), s.privateKey)
+		decryptedXML, err := GetDecryptedXML(string(bytesXML), s.PrivateKey)
 		if err != nil {
 			return nil, err
 		}
@@ -89,9 +89,9 @@ func (r *Response) Validate(s *ServiceProviderSettings) error {
 		return errors.New("subject recipient mismatch, expected: " + s.AssertionConsumerServiceURL + " not " + r.Assertion.Subject.SubjectConfirmation.SubjectConfirmationData.Recipient)
 	}
 
-	err := VerifyResponseSignature(r.originalString, s.iDPPublicCert)
+	err := VerifyResponseSignature(r.originalString, s.IDPPublicCert)
 	if err != nil {
-		assertionErr := VerifyAssertionSignature(r.originalString, s.iDPPublicCert)
+		assertionErr := VerifyAssertionSignature(r.originalString, s.IDPPublicCert)
 		if assertionErr != nil {
 			return err
 		}
