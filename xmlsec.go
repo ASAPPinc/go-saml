@@ -116,7 +116,7 @@ func verify(xml string, publicCert string, id string) error {
 
 	numBytes, err := publicCertInput.WriteString(publicCert)
 	if err != nil {
-		return "", err
+		return err
 	}
 	publicCertInput.Close()
 	defer deleteTempFile(publicCertInput.Name())
