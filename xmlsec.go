@@ -3,7 +3,6 @@ package saml
 import (
 	"crypto/rand"
 	"errors"
-	"fmt"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -16,16 +15,16 @@ const (
 	xmlAssertionID = "urn:oasis:names:tc:SAML:2.0:assertion:Assertion"
 )
 
+// TODO: break out write string with defer close to separate function
+
 // SignRequest sign a SAML 2.0 AuthnRequest
-// `privateKeyPath` must be a path on the filesystem, xmlsec1 is run out of process
-// through `exec`
+// xmlsec1 is run out of process through `exec`
 func SignRequest(xml string, privateKey string) (string, error) {
 	return sign(xml, privateKey, xmlRequestID)
 }
 
 // SignResponse sign a SAML 2.0 Response
-// `privateKeyPath` must be a path on the filesystem, xmlsec1 is run out of process TODO: delete this
-// through `exec`
+// xmlsec1 is run out of process through `exec`
 func SignResponse(xml string, privateKey string) (string, error) {
 	return sign(xml, privateKey, xmlResponseID)
 }
@@ -48,13 +47,15 @@ func sign(xml string, privateKey string, id string) (string, error) {
 	defer deleteTempFile(samlXmlsecOutput.Name())
 	samlXmlsecOutput.Close()
 
-	// same process as above for key
-	privateKeyInput, err := ioutil.TempFile(os.TempDir(), "tmpkp") // is this the right naming convention?
+	privateKeyInput, err := ioutil.TempFile(os.TempDir(), "tmpkp")
 	if err != nil {
 		return "", err
 	}
 
-	numBytes, _ := privateKeyInput.WriteString(privateKey)
+	numBytes, err := privateKeyInput.WriteString(privateKey)
+	if err != nil {
+		return "", err
+	}
 	privateKeyInput.Close()
 	defer deleteTempFile(privateKeyInput.Name())
 	defer overwriteTempFile(privateKeyInput.Name(), numBytes)
@@ -108,13 +109,15 @@ func verify(xml string, publicCert string, id string) error {
 	samlXmlsecInput.Close()
 	defer deleteTempFile(samlXmlsecInput.Name())
 
-	// same process as above for cert
-	publicCertInput, err := ioutil.TempFile(os.TempDir(), "tmppc") // right naming convention?
+	publicCertInput, err := ioutil.TempFile(os.TempDir(), "tmppc")
 	if err != nil {
 		return err
 	}
 
-	numBytes, _ := publicCertInput.WriteString(publicCert) // TODO: handle error?
+	numBytes, err := publicCertInput.WriteString(publicCert)
+	if err != nil {
+		return "", err
+	}
 	publicCertInput.Close()
 	defer deleteTempFile(publicCertInput.Name())
 	defer overwriteTempFile(publicCertInput.Name(), numBytes)
@@ -137,13 +140,15 @@ func GetDecryptedXML(xml string, privateKey string) (string, error) {
 	samlXmlsecInput.Close()
 	defer deleteTempFile(samlXmlsecInput.Name())
 
-	// same process as above for key
-	privateKeyInput, err := ioutil.TempFile(os.TempDir(), "tmpkp") // is this the right naming convention?
+	privateKeyInput, err := ioutil.TempFile(os.TempDir(), "tmpkp")
 	if err != nil {
 		return "", err
 	}
 
-	numBytes, _ := privateKeyInput.WriteString(privateKey)
+	numBytes, err := privateKeyInput.WriteString(privateKey)
+	if err != nil {
+		return "", err
+	}
 	privateKeyInput.Close()
 	defer deleteTempFile(privateKeyInput.Name())
 	defer overwriteTempFile(privateKeyInput.Name(), numBytes)
@@ -163,9 +168,6 @@ func deleteTempFile(filename string) {
 }
 
 func overwriteTempFile(filename string, len int) error {
-	fmt.Println("new overwrite test")
-	fmt.Printf("length passed in = %v", len)
-	fmt.Printf("filename passed in = %v", len)
 	b := make([]byte, len)
 	_, err := rand.Read(b)
 	if err != nil {
