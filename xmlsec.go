@@ -15,8 +15,6 @@ const (
 	xmlAssertionID = "urn:oasis:names:tc:SAML:2.0:assertion:Assertion"
 )
 
-// TODO: break out write string with defer close to separate function
-
 // SignRequest sign a SAML 2.0 AuthnRequest
 // xmlsec1 is run out of process through `exec`
 func SignRequest(xml string, privateKey string) (string, error) {
@@ -173,7 +171,6 @@ func overwriteTempFile(filename string, len int) error {
 	if err != nil {
 		return err
 	}
-	// this returns a byte slice with random written to it
 
 	err = ioutil.WriteFile(filename, b, 0600)
 	if err != nil {
