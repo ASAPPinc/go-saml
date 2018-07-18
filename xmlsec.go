@@ -3,6 +3,7 @@ package saml
 import (
 	"crypto/rand"
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -129,22 +130,34 @@ func verify(xml string, publicCert string, id string) error {
 }
 
 func GetDecryptedXML(xml string, privateKey string) (string, error) {
+	fmt.Println("********in get decrypted xml in xmlsec*********")
+	fmt.Printf("xml: %v\n\n", xml)
+	fmt.Printf("privateKey: %v\n\n", privateKey)
 	samlXmlsecInput, err := ioutil.TempFile(os.TempDir(), "tmpgs")
 	if err != nil {
+		fmt.Printf("error 1 decrypting: %v\n\n", err)
 		return "", err
 	}
+	fmt.Printf("samlXmlsecInput before: %v\n\n", samlXmlsecInput)
 
 	samlXmlsecInput.WriteString(xml)
+	fmt.Printf("samlXmlsecInput after: %v\n\n", samlXmlsecInput)
+
 	samlXmlsecInput.Close()
 	defer deleteTempFile(samlXmlsecInput.Name())
 
 	privateKeyInput, err := ioutil.TempFile(os.TempDir(), "tmpkp")
 	if err != nil {
+		fmt.Printf("error 2 decrypting: %v\n\n", err)
 		return "", err
 	}
+	fmt.Printf("privateKeyInput before: %v\n\n", privateKeyInput)
 
 	numBytes, err := privateKeyInput.WriteString(privateKey)
+	fmt.Printf("privateKeyInput before: %v\n\n", privateKeyInput)
+	fmt.Printf("numBytes: %v\n\n", numBytes)
 	if err != nil {
+		fmt.Printf("error 3 decrypting: %v\n\n", err)
 		return "", err
 	}
 	privateKeyInput.Close()
@@ -153,6 +166,7 @@ func GetDecryptedXML(xml string, privateKey string) (string, error) {
 	// fmt.Println("xmlsec1", "--decrypt", "--privkey-pem", keyPath, samlXmlsecInput.Name())
 	output, err := exec.Command("xmlsec1", "--decrypt", "--privkey-pem", privateKeyInput.Name(), samlXmlsecInput.Name()).CombinedOutput()
 	if err != nil {
+		fmt.Printf("error 4 decrypting: %v\n\n", err)
 		return "", err
 	}
 
@@ -166,14 +180,20 @@ func deleteTempFile(filename string) {
 }
 
 func overwriteTempFile(filename string, len int) error {
+	fmt.Println("now overwriting file")
+	fmt.Printf("filename: %v\n\n", filename)
+	fmt.Printf("length passed: %v\n\n", len)
 	b := make([]byte, len)
 	_, err := rand.Read(b)
 	if err != nil {
+		fmt.Printf("error 1 in overwrite file: %v\n\n", err)
 		return err
 	}
+	fmt.Printf("b: %v\n\n", b)
 
 	err = ioutil.WriteFile(filename, b, 0600)
 	if err != nil {
+		fmt.Printf("error 2 in overwrite file: %v\n\n", err)
 		return err
 	}
 
