@@ -330,11 +330,11 @@ func (r *Response) GetAttribute(name string) string {
 	for _, attr := range r.Assertion.AttributeStatement.Attributes {
 		if attr.Name == name || attr.FriendlyName == name {
 			// return attr.AttributeValues[0].Value
-			fmt.Printf("\n\n*****old style: %v\n\n", attr.AttributeValues[0].Value)
+			fmt.Printf("\n\n*****old style: %v, from name = %v\n\n", attr.AttributeValues[0].Value, name)
 		}
 		if name != "" {
 			if attr.Name == name || attr.FriendlyName == name {
-				fmt.Printf("\n\n******new style: %v\n\n", attr.AttributeValues[0].Value)
+				fmt.Printf("\n\n******new style: %v, from name = %v\n\n", attr.AttributeValues[0].Value, name)
 				return attr.AttributeValues[0].Value
 			}
 		}
