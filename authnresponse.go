@@ -327,8 +327,10 @@ func (r *Response) CompressedEncodedSignedString(privateKey string) (string, err
 // GetAttribute by Name or by FriendlyName. Return blank string if not found
 func (r *Response) GetAttribute(name string) string {
 	for _, attr := range r.Assertion.AttributeStatement.Attributes {
-		if attr.Name == name || attr.FriendlyName == name {
-			return attr.AttributeValues[0].Value
+		if name != "" {
+			if attr.Name == name || attr.FriendlyName == name {
+				return attr.AttributeValues[0].Value
+			}
 		}
 	}
 	return ""
