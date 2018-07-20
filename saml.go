@@ -16,8 +16,8 @@ type ServiceProviderSettings struct {
 
 	hasInit       bool
 	publicCert    string
-	privateKey    string
-	iDPPublicCert string
+	PrivateKey    string
+	IDPPublicCert string
 }
 
 type IdentityProviderSettings struct {
@@ -34,16 +34,6 @@ func (s *ServiceProviderSettings) Init() (err error) {
 		if err != nil {
 			panic(err)
 		}
-
-		s.privateKey, err = util.LoadCertificate(s.PrivateKeyPath)
-		if err != nil {
-			panic(err)
-		}
-	}
-
-	s.iDPPublicCert, err = util.LoadCertificate(s.IDPPublicCertPath)
-	if err != nil {
-		panic(err)
 	}
 
 	return nil
@@ -54,18 +44,4 @@ func (s *ServiceProviderSettings) PublicCert() string {
 		panic("Must call ServiceProviderSettings.Init() first")
 	}
 	return s.publicCert
-}
-
-func (s *ServiceProviderSettings) PrivateKey() string {
-	if !s.hasInit {
-		panic("Must call ServiceProviderSettings.Init() first")
-	}
-	return s.privateKey
-}
-
-func (s *ServiceProviderSettings) IDPPublicCert() string {
-	if !s.hasInit {
-		panic("Must call ServiceProviderSettings.Init() first")
-	}
-	return s.iDPPublicCert
 }

@@ -1,6 +1,7 @@
 package saml
 
 import (
+	"crypto/rand"
 	"errors"
 	"io/ioutil"
 	"os"
@@ -15,20 +16,18 @@ const (
 )
 
 // SignRequest sign a SAML 2.0 AuthnRequest
-// `privateKeyPath` must be a path on the filesystem, xmlsec1 is run out of process
-// through `exec`
-func SignRequest(xml string, privateKeyPath string) (string, error) {
-	return sign(xml, privateKeyPath, xmlRequestID)
+// xmlsec1 is run out of process through `exec`
+func SignRequest(xml string, privateKey string) (string, error) {
+	return sign(xml, privateKey, xmlRequestID)
 }
 
 // SignResponse sign a SAML 2.0 Response
-// `privateKeyPath` must be a path on the filesystem, xmlsec1 is run out of process
-// through `exec`
-func SignResponse(xml string, privateKeyPath string) (string, error) {
-	return sign(xml, privateKeyPath, xmlResponseID)
+// xmlsec1 is run out of process through `exec`
+func SignResponse(xml string, privateKey string) (string, error) {
+	return sign(xml, privateKey, xmlResponseID)
 }
 
-func sign(xml string, privateKeyPath string, id string) (string, error) {
+func sign(xml string, privateKey string, id string) (string, error) {
 
 	samlXmlsecInput, err := ioutil.TempFile(os.TempDir(), "tmpgs")
 	if err != nil {
@@ -46,10 +45,23 @@ func sign(xml string, privateKeyPath string, id string) (string, error) {
 	defer deleteTempFile(samlXmlsecOutput.Name())
 	samlXmlsecOutput.Close()
 
+	privateKeyInput, err := ioutil.TempFile(os.TempDir(), "tmpkp")
+	if err != nil {
+		return "", err
+	}
+
+	numBytes, err := privateKeyInput.WriteString(privateKey)
+	if err != nil {
+		return "", err
+	}
+	privateKeyInput.Close()
+	defer deleteTempFile(privateKeyInput.Name())
+	defer overwriteTempFile(privateKeyInput.Name(), numBytes)
+
 	// fmt.Println("xmlsec1", "--sign", "--privkey-pem", privateKeyPath,
 	// 	"--id-attr:ID", id,
 	// 	"--output", samlXmlsecOutput.Name(), samlXmlsecInput.Name())
-	output, err := exec.Command("xmlsec1", "--sign", "--privkey-pem", privateKeyPath,
+	output, err := exec.Command("xmlsec1", "--sign", "--privkey-pem", privateKeyInput.Name(),
 		"--id-attr:ID", id,
 		"--output", samlXmlsecOutput.Name(), samlXmlsecInput.Name()).CombinedOutput()
 	if err != nil {
@@ -67,26 +79,25 @@ func sign(xml string, privateKeyPath string, id string) (string, error) {
 // VerifyResponseSignature verify signature of a SAML 2.0 Response document
 // `publicCertPath` must be a path on the filesystem, xmlsec1 is run out of process
 // through `exec`
-func VerifyResponseSignature(xml string, publicCertPath string) error {
-	return verify(xml, publicCertPath, xmlResponseID)
+func VerifyResponseSignature(xml string, publicCert string) error {
+	return verify(xml, publicCert, xmlResponseID)
 }
 
 // VerifyRequestSignature verify signature of a SAML 2.0 AuthnRequest document
 // `publicCertPath` must be a path on the filesystem, xmlsec1 is run out of process
 // through `exec`
-func VerifyRequestSignature(xml string, publicCertPath string) error {
-	return verify(xml, publicCertPath, xmlRequestID)
+func VerifyRequestSignature(xml string, publicCert string) error {
+	return verify(xml, publicCert, xmlRequestID)
 }
 
 // VerifyAssertionSignature verify signature of a SAML 2.0 Response document
 // `publicCertPath` must be a path on the filesystem, xmlsec1 is run out of process
 // through `exec`
-func VerifyAssertionSignature(xml string, publicCertPath string) error {
-	return verify(xml, publicCertPath, xmlAssertionID)
+func VerifyAssertionSignature(xml string, publicCert string) error {
+	return verify(xml, publicCert, xmlAssertionID)
 }
 
-func verify(xml string, publicCertPath string, id string) error {
-	//Write saml to
+func verify(xml string, publicCert string, id string) error {
 	samlXmlsecInput, err := ioutil.TempFile(os.TempDir(), "tmpgs")
 	if err != nil {
 		return err
@@ -96,25 +107,52 @@ func verify(xml string, publicCertPath string, id string) error {
 	samlXmlsecInput.Close()
 	defer deleteTempFile(samlXmlsecInput.Name())
 
+	publicCertInput, err := ioutil.TempFile(os.TempDir(), "tmppc")
+	if err != nil {
+		return err
+	}
+
+	numBytes, err := publicCertInput.WriteString(publicCert)
+	if err != nil {
+		return err
+	}
+	publicCertInput.Close()
+	defer deleteTempFile(publicCertInput.Name())
+	defer overwriteTempFile(publicCertInput.Name(), numBytes)
+
 	//fmt.Println("xmlsec1", "--verify", "--pubkey-cert-pem", publicCertPath, "--id-attr:ID", id, samlXmlsecInput.Name())
-	_, err = exec.Command("xmlsec1", "--verify", "--pubkey-cert-pem", publicCertPath, "--id-attr:ID", id, samlXmlsecInput.Name()).CombinedOutput()
+	_, err = exec.Command("xmlsec1", "--verify", "--pubkey-cert-pem", publicCertInput.Name(), "--id-attr:ID", id, samlXmlsecInput.Name()).CombinedOutput()
 	if err != nil {
 		return errors.New("error verifing signature: " + err.Error())
 	}
 	return nil
 }
 
-func GetDecryptedXML(xml, keyPath string) (string, error) {
+func GetDecryptedXML(xml string, privateKey string) (string, error) {
 	samlXmlsecInput, err := ioutil.TempFile(os.TempDir(), "tmpgs")
 	if err != nil {
 		return "", err
 	}
 
 	samlXmlsecInput.WriteString(xml)
+
 	samlXmlsecInput.Close()
 	defer deleteTempFile(samlXmlsecInput.Name())
+
+	privateKeyInput, err := ioutil.TempFile(os.TempDir(), "tmpkp")
+	if err != nil {
+		return "", err
+	}
+
+	numBytes, err := privateKeyInput.WriteString(privateKey)
+	if err != nil {
+		return "", err
+	}
+	privateKeyInput.Close()
+	defer deleteTempFile(privateKeyInput.Name())
+	defer overwriteTempFile(privateKeyInput.Name(), numBytes)
 	// fmt.Println("xmlsec1", "--decrypt", "--privkey-pem", keyPath, samlXmlsecInput.Name())
-	output, err := exec.Command("xmlsec1", "--decrypt", "--privkey-pem", keyPath, samlXmlsecInput.Name()).CombinedOutput()
+	output, err := exec.Command("xmlsec1", "--decrypt", "--privkey-pem", privateKeyInput.Name(), samlXmlsecInput.Name()).CombinedOutput()
 	if err != nil {
 		return "", err
 	}
@@ -126,4 +164,19 @@ func GetDecryptedXML(xml, keyPath string) (string, error) {
 // Intended to be called in a defer after the creation of a temp file to ensure cleanup
 func deleteTempFile(filename string) {
 	_ = os.Remove(filename)
+}
+
+func overwriteTempFile(filename string, len int) error {
+	b := make([]byte, len)
+	_, err := rand.Read(b)
+	if err != nil {
+		return err
+	}
+
+	err = ioutil.WriteFile(filename, b, 0600)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
