@@ -29,3 +29,10 @@ func (s *ServiceProviderSettings) Init() (err error) {
 
 	return nil
 }
+
+func (s *ServiceProviderSettings) PublicCert() string {
+	if !s.hasInit {
+		panic("Must call ServiceProviderSettings.Init() first")
+	}
+	return s.publicCert
+}
